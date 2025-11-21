@@ -1,151 +1,334 @@
 # SafeWallet Pay
 
-A secure, escrow-based P2P payment platform built on Hedera Hashgraph. SafeWallet Pay solves the critical issues of irreversible crypto transactions and inefficient bulk payments, offering a safer way to send funds with built-in refund capabilities and bulk transfer management.
+A secure Hedera-based P2P payment platform with **escrow**, **refunds (including wrong-address sends)**, and **bulk transaction management**.  
+Built on **Hedera testnet (296)** with **Web3Auth** onboarding and a modern React UI.
 
-## 🚨 Problem Statement
+---
 
-The current state of peer-to-peer cryptocurrency payments is fraught with risks and inefficiencies:
+## 📋 Problem Statement
 
-1.  **Irreversibility of Transactions**: Once crypto is sent, it is gone forever. If you send funds to the **wrong address** or a **scam wallet**, there is absolutely **no option to refund** or recover your assets.
-2.  **Lack of Transaction Safety**: Senders have no assurance that the recipient is the intended party before the funds are irrevocably transferred.
-3.  **Inefficient Bulk Payments**: Paying multiple people (e.g., payroll, dividends) requires executing individual transactions for each recipient, resulting in high gas fees and wasted time.
-4.  **Complex Onboarding**: Managing private keys and seed phrases prevents mainstream adoption, especially in emerging markets like Africa.
+Traditional crypto payments have critical issues, especially for everyday users and businesses in :
+
+- **No protection for wrong-address transfers**
+  - If you paste or type the wrong wallet address, the funds are gone forever.
+  - There is **no native “undo” or refund option** once a transaction is broadcast.
+- **No escrow / claim process**
+  - Funds are sent directly to the recipient with no “claim step”, making disputes and trust hard to manage.
+- **No sender-controlled refunds**
+  - Even if the recipient never uses or even sees the funds, the sender has no way to pull them back.
+- **Inefficient bulk payouts**
+  - Paying salaries, vendors, community members or grant recipients needs many on-chain transactions, increasing cost and complexity.
+- **Complex onboarding & UX**
+  - Seed phrases, network configuration, and raw hex addresses are intimidating for new users.
+- **Infrastructure gaps in**
+  - Many users need low-fee, fast, programmable payments for micro‑transactions, remittances, and bulk payouts, but don’t get that from traditional rails.
+
+---
 
 ## 💡 Our Solution
 
-SafeWallet Pay introduces a "Safety Layer" to crypto transactions:
+SafeWallet Pay adds a **smart-contract escrow layer** and rich UI on top of Hedera:
 
-- **Escrow-First Architecture**: Funds are not sent directly to the recipient's wallet. Instead, they are held in a secure smart contract.
-- **Refund Guarantee**: If a transaction is sent to the wrong person or remains unclaimed, the **sender can fully refund the amount** back to their wallet.
-- **Claim-Based Receipt**: Recipients must explicitly "claim" the funds, ensuring active participation and verification.
-- **Bulk Transaction Manager**: A unified interface to send native HBAR or ERC-20 tokens to up to 50 recipients in a single on-chain transaction.
-- **Identity Resolution**: Integrated **Hedera Name Service (HNS)** and **ENS** resolvers allow users to send funds to human-readable names (e.g., `alice.hbar`) instead of error-prone hex addresses.
+1. **Escrow-first payments**
+   - Funds are locked in the `SafePay` contract instead of going directly to the recipient.
+2. **Claim-based receiving**
+   - Recipients explicitly **claim** funds (HBAR or ERC‑20) with a transaction ID.
+3. **Refunds for unclaimed & misdirected funds**
+   - If a payment is never claimed, the **sender can refund** and recover the funds.
+   - This gives a safety net for **wrong-address transfers**, as long as the funds remain unclaimed in escrow.
+4. **Bulk Transaction Manager**
+   - Send many payments in a single transaction to save cost and simplify operations.
+5. **Human-readable names**
+   - Resolve `.eth` via ENS (on Sepolia) and `.hbar` via HNS on Hedera to avoid copying raw addresses.
+6. **Smooth onboarding**
+   - Web3Auth enables social logins alongside traditional wallets.
 
-## ✨ Key Features
+Result: a safer, more forgiving payment flow that still feels like normal crypto.
 
-### 🛡️ Secure P2P Payments
+---
 
-- **Escrow Protection**: Funds are locked in the `SafePay` contract until claimed.
-- **Refund Mechanism**: Total control remains with the sender until the moment of claim.
-- **Flexible Sending**: Send to wallet addresses or registered **SafeWallet User IDs**.
-- **Multi-Token Support**: Full support for Native HBAR and ERC-20 tokens (e.g., HUSD).
+## ✨ Core Features
 
-### 📦 Bulk Transaction Manager
+### 1. 🔐 Safe P2P Escrow Payments
 
-- **Batch Processing**: Execute up to 50 transfers in one transaction.
-- **Address Book**: Manage saved recipients with custom nicknames and relations.
-- **Smart Validation**: Automatic validation of recipient addresses before submission.
-- **History Tracking**: detailed logs of all bulk operations.
+- Funds always go **into escrow first**, not directly to the recipient.
+- Recipients **claim** funds using a transaction ID.
+- Senders can **refund unclaimed payments**, including:
+  - Mistaken transfers to a wrong recipient address that never claims.
+- Send by:
+  - **Wallet address**, or
+  - **Registered user ID**.
+- Supported assets:
+  - Native **HBAR**.
+  - ERC‑20 style tokens like **HUSD** on Hedera testnet.
 
-### 🌍 Empowering Hedera Africa
+### 2. 👥 Bulk Transaction Manager
 
-SafeWallet Pay leverages Hedera's **$0.0001 fixed fees** and **3-second finality** to provide a viable financial tool for the African market:
+- Create **bulk payouts** in one transaction:
+  - Configure individual amounts per recipient.
+  - Suitable for payroll, bounties, vendor payments, and airdrops.
+- Bulk transaction history to audit and review previous payouts.
 
-- **Remittance Safety**: Diaspora can send funds home without fear of losing money to typos.
-- **Micro-payments**: Low fees make even $1 transactions economically viable.
-- **Mobile-First**: Optimized for smartphones, the primary access point for many users.
+### 3. 🧾 Refund & History Layer
 
-### 🔍 Name Service Integration
+- View all:
+  - **Pending** (escrowed, not yet claimed),
+  - **Claimed**, and
+  - **Refunded** transactions.
+- Trigger refunds for unclaimed escrow payments via UI.
+- Clear, human-readable statuses for every transaction.
 
-- **HNS Resolver**: Auto-resolves `.hbar` domains on Hedera Testnet.
-- **ENS Resolver**: Auto-resolves `.eth` domains on Sepolia.
-- **Cross-Chain UX**: Seamlessly switches resolvers based on the connected network.
+### 4. 🌐 Name Resolution (ENS & HNS)
 
-## 🛠️ Technical Architecture
+- **ENS Resolver (Sepolia)**
+  - Resolve `.eth` names to EVM addresses.
+- **HNS Resolver (Hedera)**
+  - Resolve `.hbar` names to:
+    - Hedera **account ID**, and
+    - Associated **EVM address**
+  - Uses:
+    - `https://api.hashgraph.name/api/v1/domains/resolve/{domain}` (HNS REST API),
+    - Hedera Mirror Node for account → EVM address.
+- Each resolver only appears on the **network where it makes sense**.
+
+### 5. 🔑 Authentication & UX
+
+- **Web3Auth** for:
+  - Social logins (Google, Twitter, etc.),
+  - Key management abstraction.
+- Support for **MetaMask** and other Web3 wallets.
+- Mobile-first, responsive UI with Tailwind CSS and Framer Motion.
+
+---
+
+## 🌍 How It Empowers Hedera the World
+
+- **Ultra‑low fees & micro‑transactions**
+  - Hedera’s low, predictable fees make it practical to send very small payments.
+- **Fast finality**
+  - 3–5 second finality enables real‑time retail payments and remittances.
+- **Refundable escrow in trust‑poor environments**
+  - Users and SMEs can send money with the confidence that unclaimed or misdirected escrow payments can be refunded.
+- **Efficient bulk payouts**
+  - SMEs, cooperatives, DAOs, and NGOs can pay many people at once — salaries, rewards, grants, and more.
+- **Inclusive onboarding**
+  - Web3Auth and name services (ENS/HNS) reduce the cognitive load of using crypto.
+
+---
+
+## 🛠️ Architecture & Tech Stack
 
 ### Frontend
 
-- **Framework**: React 18 + Vite
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + Framer Motion
-- **Web3**: Wagmi, Viem, Web3Auth (Social Logins)
+- **React 18 + TypeScript**
+- **Vite** for dev/build.
+- **Tailwind CSS** for styling.
+- **Wagmi v2 & Viem** for RPC and contract calls.
+- **Framer Motion** for animations.
+- **React Router** for client-side routing.
 
-### Backend & Smart Contracts
+### Smart Contracts (Backend)
 
-- **Network**: Hedera Testnet (Chain ID: 296) & Sepolia
-- **Framework**: Hardhat
-- **Contracts**:
-  - `SafePay.sol`: Handles escrow logic, claims, and refunds.
-  - `BulkTransactionManager.sol`: Batches transfers for efficiency.
-- **Security**: OpenZeppelin `ReentrancyGuard`, `Ownable`, and `SafeERC20`.
+- **Solidity 0.8.x** with **Hardhat**.
+- `SafePay.sol`
+  - Escrow-based payments.
+  - Claim + refund logic (HBAR and ERC‑20).
+  - User ID registry & lookup.
+- `BulkTransactionManager.sol`
+  - Bulk native & ERC‑20 transfers.
+  - Transaction history storage.
+- Uses **OpenZeppelin**:
+  - `ReentrancyGuard`, `Ownable`, `SafeERC20`, `IERC20`.
+
+### Authentication & Network
+
+- **Web3Auth** for social & wallet-based login.
+- Primary target network:
+  - **Hedera Testnet (Chain ID: 296)**.
+
+---
+
+## 📁 Project Structure (High Level)
+
+```txt
+Hedera-Payment-interface/
+├── src/
+│   ├── components/
+│   │   ├── safe-pay/                 # SafePay escrow UI (send, claim, history, resolvers)
+│   │   ├── bulk-transaction/         # Bulk transfer UI
+│   │   └── shared/                   # Shared header/layout components
+│   ├── pages/                        # Route-level pages
+│   ├── hooks/                        # Custom React hooks
+│   ├── utils/                        # Contract calls, validation, config
+│   ├── artifacts/                    # Frontend ABIs (SafePay, BulkTransactionManager)
+│   ├── context/                      # Wallet & Web3Auth context providers
+│   └── main.tsx                      # App entry & provider wiring
+│
+├── backend/
+│   ├── contracts/                    # Solidity contracts
+│   ├── scripts/                      # Hardhat deployment scripts
+│   ├── artifacts/                    # Compiled ABIs & build info
+│   ├── contract-address/             # Deployed address JSON
+│   └── hardhat.config.js             # Hardhat & network config
+│
+└── README.md
+```
+
+---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js (v18+)
-- pnpm or npm
-- MetaMask or Web3Auth-compatible wallet
+- Node.js **v18+**
+- `pnpm` or `npm`
+- A Web3 wallet (e.g. MetaMask)
+- Web3Auth client ID
 
-### Installation
+### 1. Clone & Install
 
-1.  **Clone & Install**
+```bash
+git clone <your-repo-url>
+cd Hedera-Payment-interface
 
-    ```bash
-    git clone <repo-url>
-    cd Hedera-Payment-interface
-    pnpm install
-    cd backend && pnpm install && cd ..
-    ```
+# Frontend
+pnpm install        # or: npm install
 
-2.  **Environment Setup**
-    Create a `.env` file in the root:
+# Backend
+cd backend
+pnpm install        # or: npm install
+cd ..
+```
 
-    ```env
-    VITE_WEB3AUTH_CLIENT_ID=your_client_id
-    ```
+### 2. Environment Variables
 
-    Create a `.env` file in `backend/`:
+Create `.env` in the **project root**:
 
-    ```env
-    PRIVATE_KEY=your_deployer_private_key
-    ```
+```bash
+VITE_WEB3AUTH_CLIENT_ID=your_web3auth_client_id
+```
 
-3.  **Run Development Server**
-    ```bash
-    pnpm dev
-    ```
+Create `.env` in the **backend** folder for deployments:
 
-## 📝 Smart Contracts
+```bash
+PRIVATE_KEY=your_deployer_private_key   # EVM-compatible deployer on Hedera
+```
 
-### Deployment
+### 3. Run the Frontend
+
+```bash
+pnpm dev       # or: npm run dev
+```
+
+App will run at `http://localhost:5173`.
+
+### 4. Build for Production
+
+```bash
+pnpm build     # or: npm run build
+```
+
+Production assets will be generated in `dist/`.
+
+---
+
+## 📝 Smart Contract Deployment (Hedera Testnet)
+
+### 1. Deploy SafePay
 
 ```bash
 cd backend
-# Deploy SafePay
 npx hardhat run scripts/safepay-deploy.js --network hedera-testnet
+```
 
-# Deploy Bulk Manager
+### 2. Deploy BulkTransactionManager
+
+```bash
+cd backend
 npx hardhat run scripts/deploy-bulk-transaction.js --network hedera-testnet
 ```
 
-### Deployed Addresses (Hedera Testnet)
+### 3. Update Frontend Addresses
 
-| Contract        | Address                                      | Description                |
-| --------------- | -------------------------------------------- | -------------------------- |
-| **SafePay**     | `0x472d036dCCd902CD874c6467E6eD0aF3d7843BF0` | Main escrow & refund logic |
-| **BulkManager** | `0xeFca10882Cd20060FD51E9c8418822b52f8C51f4` | Batch transfer processor   |
+After deployment, update:
 
-**Supported Tokens:**
+- `src/utils/contract-address/safePay-address.json`
+- `src/utils/contract-address/bulk-transaction-addresses.json`
 
-- **HBAR** (Native, 18 decimals)
-- **HUSD** (`0x00...68cda`, 6 decimals)
+### 4. Copy ABIs to Frontend
 
-## 📂 Project Structure
+```bash
+# SafePay ABI
+cp backend/artifacts/contracts/SafePay.sol/SafePay.json \
+   src/artifacts/SafePay.json
 
+# BulkTransactionManager ABI
+cp backend/artifacts/contracts/BulkTransactionManager.sol/BulkTransactionManager.json \
+   src/artifacts/BulkTransactionManager.json
 ```
-├── src/
-│   ├── components/
-│   │   ├── safe-pay/        # Escrow, HNS Resolver, Refund UI
-│   │   ├── bulk-transaction/# Bulk transfer forms & history
-│   │   └── shared/          # Headers, Modals
-│   ├── hooks/               # Wagmi & Logic hooks
-│   ├── utils/
-│   │   ├── hns-resolver.ts  # HNS API Logic
-│   │   └── safe-payblockchain-call.ts
-│   └── pages/               # Routes
-├── backend/
-│   ├── contracts/           # Solidity Sources
-│   └── scripts/             # Deployment Scripts
-└── README.md
-```
+
+---
+
+## 📍 Current Hedera Testnet Deployment
+
+### SafePay (Escrow Contract)
+
+- **Address**: `0x472d036dCCd902CD874c6467E6eD0aF3d7843BF0`
+- **Chain ID**: `296`
+- **Tokens**:
+  - Native: **HBAR** (18 decimals)
+  - ERC‑20: **HUSD** (`0x0000000000000000000000000000000000068cda`, 6 decimals)
+
+### BulkTransactionManager
+
+- **Address**: `0xeFca10882Cd20060FD51E9c8418822b52f8C51f4`
+- **Chain ID**: `296`
+
+These addresses are also configured in:
+
+- `src/utils/contract-address/safePay-address.json`
+- `src/utils/contract-address/bulk-transaction-addresses.json`
+- `src/utils/contract-address/safePay-tokens.json`
+
+---
+
+## 🔒 Security & Design Considerations
+
+- **Escrow & Refund Logic**
+  - Payments are **claim-based**; funds remain in escrow until claimed.
+  - Senders can **refund unclaimed funds**, reducing damage from wrong-address mistakes.
+- **Reentrancy & Safe Transfers**
+  - `ReentrancyGuard` on state-changing functions.
+  - `SafeERC20` for token transfers.
+- **Access Control**
+  - `Ownable` for admin operations and controlled upgrades.
+- **Input & Amount Validation**
+  - Frontend and contract-level checks for amounts, arrays, and addresses.
+- **Hedera Benefits**
+  - Low fees, fast finality, and carbon‑negative infrastructure.
+
+---
+
+## 🗺️ Future Roadmap
+
+- **Universal Payment Solution (Cross‑Chain, Any Token)**
+  - Allow users to **create and manage payment requests** with:
+    - Preferred blockchain (e.g. Hedera, EVM L2s, etc.),
+    - Preferred token (HBAR, stablecoins, or ERC‑20s),
+    - Total amount to receive.
+  - Generate a **payment link** that can be shared with the payer.
+  - The receiver connects their wallet; if their funds are on **another chain or in another token**, the platform:
+    - Requests **allowance** on the payer’s chosen token/chain,
+    - Automatically orchestrates **swap + bridge** steps behind the scenes,
+    - Delivers funds to the receiver in their **preferred token on their preferred blockchain**.
+  - Goal: make crypto payments feel like a single, universal payment network, regardless of where liquidity lives.
+- **Unified Balance System**
+  - Show a **single aggregated balance view** across multiple chains and tokens.
+  - Normalize balances into a common unit (e.g. USD equivalent) while still showing per‑asset details.
+  - Power better UX for the universal payment solution and future cross‑chain features.
+- Better **UX messaging** around wrong-address mistakes and refund windows.
+- Additional **tokens** and **stablecoins** on Hedera.
+- **Fiat on‑ramp/off‑ramp** integration.
+- Bulk payout analytics & CSV export.
+
+SafeWallet Pay brings **safer, refundable and scalable bulk crypto payments** to Hedera — tailored for real users and businesses across the World.
