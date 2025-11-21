@@ -21,7 +21,7 @@
     "features": ["native_currency", "erc20_tokens"]
   },
   {
-    "safePayAddress": "0x472d036dCCd902CD874c6467E6eD0aF3d7843BF0",
+    "safePayAddress": "0xa1e41cBa5EFD3ccd641F48cF303349f60F4b6b63",
     "chainId": "296",
     "chainName": "hedera-testnet",
     "version": "enhanced",

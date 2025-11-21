@@ -32,7 +32,7 @@
     "chainName": "world-test"
   },
   {
-    "safePayAddress": "0x472d036dCCd902CD874c6467E6eD0aF3d7843BF0",
+    "safePayAddress": "0xa1e41cBa5EFD3ccd641F48cF303349f60F4b6b63",
     "chainId": "296",
     "chainName": "hedera-testnet",
     "version": "enhanced",
@@ -40,7 +40,7 @@
       "native_currency",
       "erc20_tokens"
     ],
-    "deployedAt": "2025-10-31T08:22:02.649Z"
+    "deployedAt": "2025-11-21T07:06:59.733Z"
   },
   {
     "contractAddress": "0xde97e0707A81600db65228e72dC0D8256C7DCe5B",

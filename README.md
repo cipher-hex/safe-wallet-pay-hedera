@@ -273,16 +273,18 @@ cp backend/artifacts/contracts/BulkTransactionManager.sol/BulkTransactionManager
 
 ### SafePay (Escrow Contract)
 
-- **Address**: `0x472d036dCCd902CD874c6467E6eD0aF3d7843BF0`
+- **Address**: `0xa1e41cBa5EFD3ccd641F48cF303349f60F4b6b63`
 - **Chain ID**: `296`
+- **Deployed**: November 21, 2025
 - **Tokens**:
   - Native: **HBAR** (18 decimals)
   - ERC‑20: **HUSD** (`0x0000000000000000000000000000000000068cda`, 6 decimals)
 
 ### BulkTransactionManager
 
-- **Address**: `0xeFca10882Cd20060FD51E9c8418822b52f8C51f4`
+- **Address**: `0x5E0c5FCa7485be3f7e0a0809Eb18Ff5Ab6e6A346`
 - **Chain ID**: `296`
+- **Deployed**: November 21, 2025
 
 These addresses are also configured in:
 
