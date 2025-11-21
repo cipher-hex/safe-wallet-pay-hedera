@@ -17,7 +17,10 @@ import { useChainId } from "wagmi";
 import { useTokenConfig, TokenSelection } from "../../hooks/useTokenConfig";
 import { useTransactionType } from "../../hooks/useTransactionType";
 import { useTokenApproval } from "../../hooks/useTokenApproval";
-import { sendERC20ToWalletAddress, sendERC20ToUserId } from "../../utils/safe-payblockchain-call";
+import {
+  sendERC20ToWalletAddress,
+  sendERC20ToUserId,
+} from "../../utils/safe-payblockchain-call";
 import TokenSelector from "./TokenSelector";
 
 interface SendTransferProps {
@@ -45,7 +48,7 @@ const SendTransfer: React.FC<SendTransferProps> = ({
   const { selectedToken, selectToken, hasTokenSupport } = useTokenConfig();
   const [isChainSupported, setIsChainSupported] = useState(true);
   const transactionType = useTransactionType(selectedToken || undefined);
-  
+
   // Token approval hook
   const tokenApproval = useTokenApproval({
     tokenAddress: selectedToken?.token.address,
@@ -84,7 +87,12 @@ const SendTransfer: React.FC<SendTransferProps> = ({
     } else {
       setNeedsApproval(false);
     }
-  }, [amount, selectedToken, transactionType.isERC20Transaction, tokenApproval]);
+  }, [
+    amount,
+    selectedToken,
+    transactionType.isERC20Transaction,
+    tokenApproval,
+  ]);
 
   const validateForm = () => {
     if (!recipient) return "Recipient is required";
@@ -107,15 +115,18 @@ const SendTransfer: React.FC<SendTransferProps> = ({
   };
 
   const handleUserIdSearch = async () => {
-    if (!recipient || recipient.startsWith('0x') || !address) return;
-    
+    if (!recipient || recipient.startsWith("0x") || !address) return;
+
     setSearchLoading(true);
     setSearchError("");
     setShowSearchResult(false);
-    
+
     try {
       const userAddress = await getUserByUserId(recipient);
-      if (userAddress && userAddress !== '0x0000000000000000000000000000000000000000') {
+      if (
+        userAddress &&
+        userAddress !== "0x0000000000000000000000000000000000000000"
+      ) {
         setSearchedAddress(userAddress);
         setShowSearchResult(true);
         setShowPasteButton(true);
@@ -145,8 +156,18 @@ const SendTransfer: React.FC<SendTransferProps> = ({
     setError("");
 
     try {
+      // Approve and wait for confirmation
       await tokenApproval.approveAmount(amount);
-      setNeedsApproval(false);
+
+      // Check if approval is still needed after refetch
+      const stillNeedsApproval = tokenApproval.needsApproval(amount);
+      setNeedsApproval(stillNeedsApproval);
+
+      if (!stillNeedsApproval) {
+        console.log(
+          "✅ Approval successful! You can now send the transaction."
+        );
+      }
     } catch (err: unknown) {
       console.error("Approval error:", err);
       setError(parseErrorMessage(err));
@@ -186,7 +207,7 @@ const SendTransfer: React.FC<SendTransferProps> = ({
 
     try {
       let newTransactionId;
-      
+
       if (transactionType.isNativeTransaction) {
         // Use existing native currency functions
         if (recipient.startsWith("0x")) {
@@ -237,258 +258,264 @@ const SendTransfer: React.FC<SendTransferProps> = ({
         <span>Send Transfer</span>
       </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Unsupported Chain Warning */}
-          {!isChainSupported && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
-              <div className="flex items-start space-x-3">
-                <ExclamationTriangleIcon className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium text-red-800">
-                    Unsupported Network
-                  </h3>
-                  <p className="text-sm text-red-700 mt-1">
-                    Please switch to a supported network to continue.
-                  </p>
-                </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Unsupported Chain Warning */}
+        {!isChainSupported && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
+            <div className="flex items-start space-x-3">
+              <ExclamationTriangleIcon className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-red-800">
+                  Unsupported Network
+                </h3>
+                <p className="text-sm text-red-700 mt-1">
+                  Please switch to a supported network to continue.
+                </p>
               </div>
             </div>
-          )}
-
-          {/* Token Selection */}
-          {hasTokenSupport && isChainSupported && (
-            <TokenSelector
-              onTokenSelect={(token: TokenSelection) => {
-                selectToken(token);
-                setError(""); // Clear any previous errors
-                setNeedsApproval(false); // Reset approval state
-              }}
-              address={address}
-            />
-          )}
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-blue-600 font-medium">
-                Recipient
-              </label>
-              {recipient && !recipient.startsWith('0x') && (
-                <button
-                  type="button"
-                  onClick={handleUserIdSearch}
-                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm"
-                  disabled={searchLoading}
-                >
-                  {searchLoading ? (
-                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <MagnifyingGlassIcon className="w-4 h-4" />
-                  )}
-                  <span>{searchLoading ? 'Checking...' : 'Search'}</span>
-                </button>
-              )}
-            </div>
-            <input
-              type="text"
-              value={recipient}
-              onChange={(e) => {
-                setRecipient(e.target.value);
-                setShowSearchResult(false);
-                setShowPasteButton(false);
-                setSearchError("");
-              }}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="0x... or userId"
-              required
-            />
-            
-            {/* Search Result */}
-            {showSearchResult && searchedAddress && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-base font-medium text-green-700">
-                      User found!
-                    </p>
-                    <p className="text-sm text-green-600 font-mono">
-                      {searchedAddress.substring(0, 6)}...{searchedAddress.substring(searchedAddress.length - 4)}
-                    </p>
-                  </div>
-                  {showPasteButton && (
-                    <button
-                      type="button"
-                      onClick={handlePasteAddress}
-                      className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors duration-200"
-                    >
-                      <ClipboardDocumentIcon className="w-3 h-3" />
-                      <span>Paste</span>
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-            
-            {/* Search Error */}
-            {searchError && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl"
-              >
-                <p className="text-base font-medium text-red-700">
-                  {searchError}
-                </p>
-              </motion.div>
-            )}
           </div>
+        )}
 
-          <div>
-            <label className="block mb-2 text-gray-700 font-medium text-sm">
-              Amount ({transactionType.getTokenSymbol()})
-            </label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="0.0"
-              required
-              min="0"
-              step="0.000000000000000001"
-            />
-          </div>
+        {/* Token Selection */}
+        {hasTokenSupport && isChainSupported && (
+          <TokenSelector
+            onTokenSelect={(token: TokenSelection) => {
+              selectToken(token);
+              setError(""); // Clear any previous errors
+              setNeedsApproval(false); // Reset approval state
+            }}
+            address={address}
+          />
+        )}
 
-          <div>
-            <label className="mb-2 text-gray-700 font-medium flex items-center space-x-2 text-sm">
-              <ChatBubbleBottomCenterTextIcon className="w-4 h-4" />
-              <span>Note</span>
-            </label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Add a note about this transaction like send to relation, payment for something, etc."
-              rows={3}
-              required
-            />
-          </div>
-
-          <AnimatePresence mode="wait">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700"
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-blue-600 font-medium">Recipient</label>
+            {recipient && !recipient.startsWith("0x") && (
+              <button
+                type="button"
+                onClick={handleUserIdSearch}
+                className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm"
+                disabled={searchLoading}
               >
-                {error}
-              </motion.div>
-            )}
-
-            {success && (
-              <div className="text-center py-2">
-                <p className="text-green-600 font-medium">
-                  {success}
-                </p>
-                {transactionId && (
-                  <div className="mt-2 space-y-2">
-                    <p className="text-lg text-slate-700 font-medium">
-                      Transaction ID:
-                    </p>
-                    <div className="flex items-center justify-center space-x-2">
-                      <span className="font-mono text-lg text-blue-600">
-                        {transactionId.substring(0, 8)}...{transactionId.substring(transactionId.length - 6)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(transactionId, "Transaction ID")}
-                        className="p-1 hover:bg-blue-100 rounded transition-colors duration-200"
-                        title="Copy Transaction ID"
-                      >
-                        <DocumentDuplicateIcon className="w-4 h-4 text-blue-600" />
-                      </button>
-                    </div>
-                  </div>
+                {searchLoading ? (
+                  <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                ) : (
+                  <MagnifyingGlassIcon className="w-4 h-4" />
                 )}
-                <button
-                  onClick={handleNewTransaction}
-                  className="mt-2 bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                >
-                  Make Another Transaction
-                </button>
-              </div>
+                <span>{searchLoading ? "Checking..." : "Search"}</span>
+              </button>
             )}
-          </AnimatePresence>
+          </div>
+          <input
+            type="text"
+            value={recipient}
+            onChange={(e) => {
+              setRecipient(e.target.value);
+              setShowSearchResult(false);
+              setShowPasteButton(false);
+              setSearchError("");
+            }}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="0x... or userId"
+            required
+          />
 
-          {/* Approval Button for ERC-20 Tokens */}
-          {transactionType.isERC20Transaction && needsApproval && !success && (
+          {/* Search Result */}
+          {showSearchResult && searchedAddress && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl"
+              className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl"
             >
-              <div className="flex items-start space-x-3">
-                <ExclamationCircleIcon className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-yellow-800">
-                    Token Approval Required
-                  </h3>
-                  <p className="text-sm text-yellow-700 mt-1">
-                    You need to approve the contract to spend your {selectedToken?.token.symbol} tokens.
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-base font-medium text-green-700">
+                    User found!
                   </p>
+                  <p className="text-sm text-green-600 font-mono">
+                    {searchedAddress.substring(0, 6)}...
+                    {searchedAddress.substring(searchedAddress.length - 4)}
+                  </p>
+                </div>
+                {showPasteButton && (
                   <button
                     type="button"
-                    onClick={handleApproval}
-                    disabled={isApproving}
-                    className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    onClick={handlePasteAddress}
+                    className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors duration-200"
                   >
-                    {isApproving ? (
-                      <>
-                        <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                        <span>Approving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircleIcon className="w-4 h-4" />
-                        <span>Approve {selectedToken?.token.symbol}</span>
-                      </>
-                    )}
+                    <ClipboardDocumentIcon className="w-3 h-3" />
+                    <span>Paste</span>
                   </button>
-                </div>
+                )}
               </div>
             </motion.div>
           )}
 
-          {!success && (
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              disabled={isLoading || !address || !isChainSupported || (transactionType.isERC20Transaction && needsApproval)}
+          {/* Search Error */}
+          {searchError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl"
             >
-              {isLoading ? (
-                <>
-                  <ArrowPathIcon className="w-5 h-5 animate-spin" />
-                  <span>Processing...</span>
-                </>
-              ) : (
-                <>
-                  <ArrowRightIcon className="w-5 h-5" />
-                  <span>Send Transaction</span>
-                </>
-              )}
-            </button>
+              <p className="text-base font-medium text-red-700">
+                {searchError}
+              </p>
+            </motion.div>
           )}
-        </form>
+        </div>
 
-        {!address && (
-          <p className="text-center text-slate-500 text-sm mt-4">
-            Connect your wallet to send transactions
-          </p>
+        <div>
+          <label className="block mb-2 text-gray-700 font-medium text-sm">
+            Amount ({transactionType.getTokenSymbol()})
+          </label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="0.0"
+            required
+            min="0"
+            step="0.000000000000000001"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 text-gray-700 font-medium flex items-center space-x-2 text-sm">
+            <ChatBubbleBottomCenterTextIcon className="w-4 h-4" />
+            <span>Note</span>
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder="Add a note about this transaction like send to relation, payment for something, etc."
+            rows={3}
+            required
+          />
+        </div>
+
+        <AnimatePresence mode="wait">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {success && (
+            <div className="text-center py-2">
+              <p className="text-green-600 font-medium">{success}</p>
+              {transactionId && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-lg text-slate-700 font-medium">
+                    Transaction ID:
+                  </p>
+                  <div className="flex items-center justify-center space-x-2">
+                    <span className="font-mono text-lg text-blue-600">
+                      {transactionId.substring(0, 8)}...
+                      {transactionId.substring(transactionId.length - 6)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyToClipboard(transactionId, "Transaction ID")
+                      }
+                      className="p-1 hover:bg-blue-100 rounded transition-colors duration-200"
+                      title="Copy Transaction ID"
+                    >
+                      <DocumentDuplicateIcon className="w-4 h-4 text-blue-600" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={handleNewTransaction}
+                className="mt-2 bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              >
+                Make Another Transaction
+              </button>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Approval Button for ERC-20 Tokens */}
+        {transactionType.isERC20Transaction && needsApproval && !success && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl"
+          >
+            <div className="flex items-start space-x-3">
+              <ExclamationCircleIcon className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Token Approval Required
+                </h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  You need to approve the contract to spend your{" "}
+                  {selectedToken?.token.symbol} tokens.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleApproval}
+                  disabled={isApproving}
+                  className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                >
+                  {isApproving ? (
+                    <>
+                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                      <span>Approving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircleIcon className="w-4 h-4" />
+                      <span>Approve {selectedToken?.token.symbol}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
         )}
+
+        {!success && (
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            disabled={
+              isLoading ||
+              !address ||
+              !isChainSupported ||
+              (transactionType.isERC20Transaction && needsApproval)
+            }
+          >
+            {isLoading ? (
+              <>
+                <ArrowPathIcon className="w-5 h-5 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                <ArrowRightIcon className="w-5 h-5" />
+                <span>Send Transaction</span>
+              </>
+            )}
+          </button>
+        )}
+      </form>
+
+      {!address && (
+        <p className="text-center text-slate-500 text-sm mt-4">
+          Connect your wallet to send transactions
+        </p>
+      )}
     </div>
   );
 };

@@ -1,6 +1,12 @@
 import { useState, useCallback } from "react";
-import { useWriteContract, useReadContract, useChainId } from "wagmi";
+import {
+  useWriteContract,
+  useReadContract,
+  useChainId,
+  useConfig,
+} from "wagmi";
 import { parseUnits, formatUnits, maxUint256 } from "viem";
+import { waitForTransactionReceipt } from "wagmi/actions";
 import contractAddresses from "../utils/contract-address/safePay-address.json";
 
 // ERC-20 ABI for approval functions
@@ -41,6 +47,7 @@ export function useTokenApproval({
   spenderAddress,
 }: UseTokenApprovalParams) {
   const chainId = useChainId();
+  const config = useConfig();
   const [isApproving, setIsApproving] = useState(false);
 
   // Get contract address (custom spender or SafePay contract address)
@@ -106,14 +113,21 @@ export function useTokenApproval({
       try {
         const amountToApprove = parseUnits(amount, decimals);
 
-        await writeContractAsync({
+        // Send approval transaction and get hash
+        const hash = await writeContractAsync({
           address: tokenAddress as `0x${string}`,
           abi: ERC20_ABI,
           functionName: "approve",
           args: [getContractAddress(), amountToApprove],
         });
 
-        // Refetch allowance after approval
+        // Wait for transaction to be confirmed
+        await waitForTransactionReceipt(config, {
+          hash,
+          confirmations: 1,
+        });
+
+        // Refetch allowance after confirmation
         await refetchAllowance();
       } catch (error) {
         console.error("Approval failed:", error);
@@ -122,7 +136,14 @@ export function useTokenApproval({
         setIsApproving(false);
       }
     },
-    [tokenAddress, userAddress, decimals, writeContractAsync, refetchAllowance]
+    [
+      tokenAddress,
+      userAddress,
+      decimals,
+      writeContractAsync,
+      refetchAllowance,
+      config,
+    ]
   );
 
   // Approve maximum amount (infinite approval)
@@ -133,14 +154,21 @@ export function useTokenApproval({
 
     setIsApproving(true);
     try {
-      await writeContractAsync({
+      // Send approval transaction and get hash
+      const hash = await writeContractAsync({
         address: tokenAddress as `0x${string}`,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [getContractAddress(), maxUint256],
       });
 
-      // Refetch allowance after approval
+      // Wait for transaction to be confirmed
+      await waitForTransactionReceipt(config, {
+        hash,
+        confirmations: 1,
+      });
+
+      // Refetch allowance after confirmation
       await refetchAllowance();
     } catch (error) {
       console.error("Max approval failed:", error);
@@ -148,7 +176,7 @@ export function useTokenApproval({
     } finally {
       setIsApproving(false);
     }
-  }, [tokenAddress, userAddress, writeContractAsync, refetchAllowance]);
+  }, [tokenAddress, userAddress, writeContractAsync, refetchAllowance, config]);
 
   // Reset approval (set to 0)
   const resetApproval = useCallback(async (): Promise<void> => {
@@ -158,14 +186,21 @@ export function useTokenApproval({
 
     setIsApproving(true);
     try {
-      await writeContractAsync({
+      // Send approval transaction and get hash
+      const hash = await writeContractAsync({
         address: tokenAddress as `0x${string}`,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [getContractAddress(), 0n],
       });
 
-      // Refetch allowance after reset
+      // Wait for transaction to be confirmed
+      await waitForTransactionReceipt(config, {
+        hash,
+        confirmations: 1,
+      });
+
+      // Refetch allowance after confirmation
       await refetchAllowance();
     } catch (error) {
       console.error("Reset approval failed:", error);
@@ -173,7 +208,7 @@ export function useTokenApproval({
     } finally {
       setIsApproving(false);
     }
-  }, [tokenAddress, userAddress, writeContractAsync, refetchAllowance]);
+  }, [tokenAddress, userAddress, writeContractAsync, refetchAllowance, config]);
 
   return {
     allowance: allowance as bigint | undefined,
