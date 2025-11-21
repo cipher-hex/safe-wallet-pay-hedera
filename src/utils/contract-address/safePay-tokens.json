@@ -67,8 +67,8 @@
     "chainName": "hedera-testnet",
     "nativeCurrency": {
       "symbol": "HBAR",
-      "decimals": 18,
-      "name": "Hedera Bar"
+      "decimals": 8,
+      "name": "Hedera HBAR"
     },
     "supportedTokens": [
       {
