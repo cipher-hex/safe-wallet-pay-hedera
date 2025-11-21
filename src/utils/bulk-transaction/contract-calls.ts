@@ -139,17 +139,47 @@ export const bulkTransferNative = async (
 
   const contractAddress = getBulkTransactionContractAddress(chainId);
 
-  // Calculate total amount
-  const amountsInWei = amounts.map((amount) => parseEther(amount));
-  const totalAmount = amountsInWei.reduce((acc, curr) => acc + curr, BigInt(0));
+  // Determine chain decimals from configuration
+  const chainConfig = tokenInfo.find((c) => c.chainId === chainId.toString());
+  const chainDecimals = chainConfig?.nativeCurrency?.decimals || 18;
+
+  // Calculate amounts using the chain's native decimals for the contract arguments.
+  // For Hedera, this will be 8 decimals (Tinybars).
+  // For Sepolia, this will be 18 decimals (Wei).
+  const amountsForContract = amounts.map((amount) =>
+    parseUnits(amount, chainDecimals)
+  );
+
+  // Calculate the total transaction value.
+  // IMPORTANT: For EVM compatibility on Hedera, the 'value' field in a transaction
+  // is typically expected to be in 18-decimal "Wei-bars" by wallets like Metamask,
+  // even if the underlying chain uses 8 decimals.
+  // However, if we simply sum up the amountsForContract, we get the correct native value (e.g. in Tinybars).
+  // If we pass this native value as 'value' to Wagmi/Metamask on Hedera, Metamask might interpret it as Wei
+  // (10^-10 HBAR), resulting in a tiny transfer.
+  // To ensure the wallet displays and sends the correct amount of HBAR (e.g. 0.7), we must provide
+  // the value in 18 decimals (parseEther) if the chain ID implies standard EVM behavior.
+  // BUT, the contract receives the value in its native denomination (Tinybars on Hedera).
+  // So:
+  // 1. Value sent to network: Must be correctly interpreted by wallet -> parseEther (18 decimals).
+  //    The JSON-RPC relay converts 18-decimal Wei-bar input to 8-decimal Tinybar output for the network.
+  // 2. Arguments passed to contract: Must match what the contract sees in msg.value (Tinybars).
+  //    So arguments must be 8 decimals.
+
+  // Always use 18 decimals for the transaction 'value' field to satisfy Metamask/Wagmi defaults.
+  const amountsForValue = amounts.map((amount) => parseEther(amount));
+  const totalValueWei = amountsForValue.reduce(
+    (acc, curr) => acc + curr,
+    BigInt(0)
+  );
 
   try {
     const hash = await writeContract(wagmiConfig, {
       address: contractAddress,
       abi: BulkTransactionManagerABI.abi,
       functionName: "bulkTransferNative",
-      args: [recipientIds.map((id) => BigInt(id)), amountsInWei],
-      value: totalAmount,
+      args: [recipientIds.map((id) => BigInt(id)), amountsForContract],
+      value: totalValueWei,
     });
 
     const receipt = await waitForTransactionReceipt(wagmiConfig, {
