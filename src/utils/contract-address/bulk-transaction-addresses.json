@@ -1,0 +1,14 @@
+[
+  {
+    "contractAddress": "0x89259f2f3b4B3c446Ac6Da28ae010462950f48d0",
+    "chainId": "11155111",
+    "chainName": "sepolia",
+    "deployedAt": "2025-10-31T13:11:25.072Z"
+  },
+  {
+    "contractAddress": "0xeFca10882Cd20060FD51E9c8418822b52f8C51f4",
+    "chainId": "296",
+    "chainName": "hedera-testnet",
+    "deployedAt": "2025-10-23T16:11:00.000Z"
+  }
+]

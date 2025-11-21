@@ -1,0 +1,30 @@
+[
+  {
+    "safePayAddress": "0xdEE61D7ECc13404c26DE0813C921A32b424b1d70",
+    "chainId": "11155111",
+    "chainName": "sepolia",
+    "version": "enhanced",
+    "features": ["native_currency", "erc20_tokens"]
+  },
+  {
+    "safePayAddress": "0x5e6c03E14002aF759680cd86ad4534D4b8FA0648",
+    "chainId": "545",
+    "chainName": "flow-test",
+    "version": "basic",
+    "features": ["native_currency"]
+  },
+  {
+    "safePayAddress": "0x5e6c03E14002aF759680cd86ad4534D4b8FA0648",
+    "chainId": "5115",
+    "chainName": "citera-testnet",
+    "version": "enhanced",
+    "features": ["native_currency", "erc20_tokens"]
+  },
+  {
+    "safePayAddress": "0x472d036dCCd902CD874c6467E6eD0aF3d7843BF0",
+    "chainId": "296",
+    "chainName": "hedera-testnet",
+    "version": "enhanced",
+    "features": ["native_currency", "erc20_tokens"]
+  }
+]
