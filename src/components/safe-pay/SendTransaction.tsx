@@ -156,18 +156,8 @@ const SendTransfer: React.FC<SendTransferProps> = ({
     setError("");
 
     try {
-      // Approve and wait for confirmation
       await tokenApproval.approveAmount(amount);
-
-      // Check if approval is still needed after refetch
-      const stillNeedsApproval = tokenApproval.needsApproval(amount);
-      setNeedsApproval(stillNeedsApproval);
-
-      if (!stillNeedsApproval) {
-        console.log(
-          "✅ Approval successful! You can now send the transaction."
-        );
-      }
+      setNeedsApproval(false);
     } catch (err: unknown) {
       console.error("Approval error:", err);
       setError(parseErrorMessage(err));

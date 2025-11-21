@@ -140,18 +140,8 @@ const BulkTransferForm: React.FC<BulkTransferFormProps> = ({
     setFormError("");
 
     try {
-      // Approve and wait for confirmation
       await tokenApproval.approveAmount(totalAmount);
-
-      // Check if approval is still needed after refetch
-      const stillNeedsApproval = tokenApproval.needsApproval(totalAmount);
-      setNeedsApproval(stillNeedsApproval);
-
-      if (!stillNeedsApproval) {
-        console.log(
-          "✅ Approval successful! You can now send the bulk transaction."
-        );
-      }
+      setNeedsApproval(false);
     } catch (err: any) {
       console.error("Approval error:", err);
       setFormError(err.message || "Failed to approve token");

@@ -3,10 +3,9 @@ import {
   useWriteContract,
   useReadContract,
   useChainId,
-  useConfig,
+  usePublicClient,
 } from "wagmi";
 import { parseUnits, formatUnits, maxUint256 } from "viem";
-import { waitForTransactionReceipt } from "wagmi/actions";
 import contractAddresses from "../utils/contract-address/safePay-address.json";
 
 // ERC-20 ABI for approval functions
@@ -47,7 +46,7 @@ export function useTokenApproval({
   spenderAddress,
 }: UseTokenApprovalParams) {
   const chainId = useChainId();
-  const config = useConfig();
+  const publicClient = usePublicClient();
   const [isApproving, setIsApproving] = useState(false);
 
   // Get contract address (custom spender or SafePay contract address)
@@ -113,7 +112,6 @@ export function useTokenApproval({
       try {
         const amountToApprove = parseUnits(amount, decimals);
 
-        // Send approval transaction and get hash
         const hash = await writeContractAsync({
           address: tokenAddress as `0x${string}`,
           abi: ERC20_ABI,
@@ -122,12 +120,11 @@ export function useTokenApproval({
         });
 
         // Wait for transaction to be confirmed
-        await waitForTransactionReceipt(config, {
-          hash,
-          confirmations: 1,
-        });
+        if (publicClient) {
+          await publicClient.waitForTransactionReceipt({ hash });
+        }
 
-        // Refetch allowance after confirmation
+        // Refetch allowance after approval
         await refetchAllowance();
       } catch (error) {
         console.error("Approval failed:", error);
@@ -142,7 +139,7 @@ export function useTokenApproval({
       decimals,
       writeContractAsync,
       refetchAllowance,
-      config,
+      publicClient,
     ]
   );
 
@@ -154,7 +151,6 @@ export function useTokenApproval({
 
     setIsApproving(true);
     try {
-      // Send approval transaction and get hash
       const hash = await writeContractAsync({
         address: tokenAddress as `0x${string}`,
         abi: ERC20_ABI,
@@ -163,12 +159,11 @@ export function useTokenApproval({
       });
 
       // Wait for transaction to be confirmed
-      await waitForTransactionReceipt(config, {
-        hash,
-        confirmations: 1,
-      });
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
 
-      // Refetch allowance after confirmation
+      // Refetch allowance after approval
       await refetchAllowance();
     } catch (error) {
       console.error("Max approval failed:", error);
@@ -176,7 +171,13 @@ export function useTokenApproval({
     } finally {
       setIsApproving(false);
     }
-  }, [tokenAddress, userAddress, writeContractAsync, refetchAllowance, config]);
+  }, [
+    tokenAddress,
+    userAddress,
+    writeContractAsync,
+    refetchAllowance,
+    publicClient,
+  ]);
 
   // Reset approval (set to 0)
   const resetApproval = useCallback(async (): Promise<void> => {
@@ -186,7 +187,6 @@ export function useTokenApproval({
 
     setIsApproving(true);
     try {
-      // Send approval transaction and get hash
       const hash = await writeContractAsync({
         address: tokenAddress as `0x${string}`,
         abi: ERC20_ABI,
@@ -195,12 +195,11 @@ export function useTokenApproval({
       });
 
       // Wait for transaction to be confirmed
-      await waitForTransactionReceipt(config, {
-        hash,
-        confirmations: 1,
-      });
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
 
-      // Refetch allowance after confirmation
+      // Refetch allowance after reset
       await refetchAllowance();
     } catch (error) {
       console.error("Reset approval failed:", error);
@@ -208,7 +207,13 @@ export function useTokenApproval({
     } finally {
       setIsApproving(false);
     }
-  }, [tokenAddress, userAddress, writeContractAsync, refetchAllowance, config]);
+  }, [
+    tokenAddress,
+    userAddress,
+    writeContractAsync,
+    refetchAllowance,
+    publicClient,
+  ]);
 
   return {
     allowance: allowance as bigint | undefined,
